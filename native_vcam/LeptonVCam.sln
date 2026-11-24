@@ -1,0 +1,35 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 18
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "LeptonVCamSource", "LeptonVCamSource\LeptonVCamSource.vcxproj", "{0B0C7E7A-6C0E-4B19-9C7B-0B6F3B3B7A01}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "LeptonVCam", "LeptonVCam\LeptonVCam.vcxproj", "{0B0C7E7A-6C0E-4B19-9C7B-0B6F3B3B7A02}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "selftest", "selftest\selftest.vcxproj", "{0B0C7E7A-6C0E-4B19-9C7B-0B6F3B3B7A03}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "LeptonAgent", "LeptonAgent\LeptonAgent.vcxproj", "{0B0C7E7A-6C0E-4B19-9C7B-0B6F3B3B7A04}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+		Release|x64 = Release|x64
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{0B0C7E7A-6C0E-4B19-9C7B-0B6F3B3B7A04}.Debug|x64.ActiveCfg = Debug|x64
+		{0B0C7E7A-6C0E-4B19-9C7B-0B6F3B3B7A04}.Debug|x64.Build.0 = Debug|x64
+		{0B0C7E7A-6C0E-4B19-9C7B-0B6F3B3B7A04}.Release|x64.ActiveCfg = Release|x64
+		{0B0C7E7A-6C0E-4B19-9C7B-0B6F3B3B7A04}.Release|x64.Build.0 = Release|x64
+		{0B0C7E7A-6C0E-4B19-9C7B-0B6F3B3B7A01}.Debug|x64.ActiveCfg = Debug|x64
+		{0B0C7E7A-6C0E-4B19-9C7B-0B6F3B3B7A01}.Debug|x64.Build.0 = Debug|x64
+		{0B0C7E7A-6C0E-4B19-9C7B-0B6F3B3B7A01}.Release|x64.ActiveCfg = Release|x64
+		{0B0C7E7A-6C0E-4B19-9C7B-0B6F3B3B7A01}.Release|x64.Build.0 = Release|x64
+		{0B0C7E7A-6C0E-4B19-9C7B-0B6F3B3B7A02}.Debug|x64.ActiveCfg = Debug|x64
+		{0B0C7E7A-6C0E-4B19-9C7B-0B6F3B3B7A02}.Debug|x64.Build.0 = Debug|x64
+		{0B0C7E7A-6C0E-4B19-9C7B-0B6F3B3B7A02}.Release|x64.ActiveCfg = Release|x64
+		{0B0C7E7A-6C0E-4B19-9C7B-0B6F3B3B7A02}.Release|x64.Build.0 = Release|x64
+		{0B0C7E7A-6C0E-4B19-9C7B-0B6F3B3B7A03}.Debug|x64.ActiveCfg = Debug|x64
+		{0B0C7E7A-6C0E-4B19-9C7B-0B6F3B3B7A03}.Debug|x64.Build.0 = Debug|x64
+		{0B0C7E7A-6C0E-4B19-9C7B-0B6F3B3B7A03}.Release|x64.ActiveCfg = Release|x64
+		{0B0C7E7A-6C0E-4B19-9C7B-0B6F3B3B7A03}.Release|x64.Build.0 = Release|x64
+	EndGlobalSection
+EndGlobal

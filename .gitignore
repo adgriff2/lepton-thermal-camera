@@ -1,0 +1,16 @@
+# Only the camera project and the viewer program are published; everything else here stays local.
+/*
+!/.gitignore
+!/README.md
+!/lepton_cam.py
+!/native_vcam/
+
+# build output and downloads (recreated by build.ps1 / package.ps1)
+/native_vcam/dist/
+/native_vcam/out/
+/native_vcam/obj/
+/native_vcam/package/
+/native_vcam/packages/
+__pycache__/
+.vs/
+*.user
