@@ -2,6 +2,7 @@
 /*
 !/.gitignore
 !/README.md
+!/LICENSE
 !/lepton_cam.py
 !/native_vcam/
 
