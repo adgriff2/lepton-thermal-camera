@@ -20,15 +20,14 @@ Not affiliated with or endorsed by Teledyne FLIR. FLIR and Lepton are trademarks
 
 ## Hardware
 
-- FLIR Lepton 3 (160x120) on a breakout board, connected to channel A of an FTDI FT2232H board (MPSSE, SPI mode 3, 10 MHz):
+Tested with the **FLIR Lepton Dev Kit 1** (board 250-0588, R100): an FTDI FT2232H wired to a Lepton 3 socket, powered and
+connected by one micro USB cable. Windows lists it as two FTDI devices, "Dual RS232-HS A" and "Dual RS232-HS B".
 
-  | FT2232H pin | Lepton |
-  |---|---|
-  | ADBUS0 | SPI clock (SCK) |
-  | ADBUS2 | SPI data out (MISO) |
-  | ADBUS3 | SPI chip select (CS) |
-  | GND | GND |
-
+- Channel A carries the video (SPI mode 3 at 10 MHz): clock on ADBUS0, Lepton data out on ADBUS2, chip select on ADBUS3.
+  Other FT2232H/FT232H boards wired the same way should work, but are untested.
+- Channel B is the Lepton's I2C control bus. It isn't used; never configure it as the camera's board.
+- Lepton 3 only (160x120). Lepton 1/2 work in the viewer (`--model 2`), not in the camera.
+- Every kit reports the same names, so with two kits plugged in the camera shows SEVERAL BOARDS FOUND: plug in one.
 - The FTDI D2XX driver (`ftd2xx.dll`). Windows Update normally installs it when the board is plugged in.
 
 ## Install

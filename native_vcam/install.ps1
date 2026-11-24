@@ -81,7 +81,10 @@ $configured = (Get-ItemProperty $settings -ErrorAction SilentlyContinue).Board
 $reg = (Get-ItemProperty 'HKLM:\SOFTWARE\Classes\CLSID\{5d5c12fe-863c-4d8a-8b21-79f4a8b9419e}\InprocServer32').'(default)'
 "registered: $reg"
 "feed: $feed ($((Get-Item $feed -Force).Length) bytes)"
-if ($configured) { "board: $configured" }
+if ($configured) {
+    "board: $configured"
+    if ($configured -notmatch ' A$') { 'WARNING: on the FLIR Lepton Dev Kit the video is on channel A ("... A"); channel B is the Lepton''s I2C control bus. Check -Board.' }
+}
 else {
     'board: NOT CONFIGURED - the camera will show NO BOARD CONFIGURED. FTDI boards connected now:'
     & (Join-Path $target 'lepton_vcam.exe') boards | ForEach-Object { "  $_" }

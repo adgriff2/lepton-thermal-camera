@@ -74,7 +74,7 @@ pause
 '@ | Set-Content (Join-Path $out 'Add camera.cmd') -Encoding ASCII
 
 @'
-Lepton Thermal camera for Windows 11 (x64), for a FLIR Lepton 3 on an FTDI FT2232H board
+Lepton Thermal camera for Windows 11 (x64), for the FLIR Lepton Dev Kit 1 (Lepton 3 on an FT2232H board)
 
 1. Plug in the board. Windows Update normally installs its driver
    (otherwise, as admin: https://ftdichip.com/drivers/d2xx-drivers/).
@@ -101,7 +101,7 @@ pause
 '@ | Set-Content (Join-Path $view 'Lepton viewer.cmd') -Encoding ASCII
 
 @'
-Lepton viewer for Windows (x64), for a FLIR Lepton 3 on an FTDI FT2232H board.
+Lepton viewer for Windows (x64), for the FLIR Lepton Dev Kit 1 (Lepton on an FT2232H board).
 No admin, no installation: double-click "Lepton viewer.cmd".
 Keys in the window: q quit, p palette, f flip, m mirror. It is a window, not a camera: share the window in a call.
 Needs the FTDI driver (Windows Update normally installs it when the board is plugged in).

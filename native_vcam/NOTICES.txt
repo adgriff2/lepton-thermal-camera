@@ -2,7 +2,7 @@ Lepton Thermal camera for Windows - https://github.com/adgriff2/lepton-thermal-c
 
 MIT License
 
-Copyright (c) 2026 adgriff2
+Copyright (c) 2026 Adam Griffin
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
