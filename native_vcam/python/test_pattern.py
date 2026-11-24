@@ -1,4 +1,4 @@
-"""Sends a moving test pattern to the "FLIR Lepton" camera.
+"""Sends a moving test pattern to the "Lepton Thermal" camera.
   python test_pattern.py [--seconds 30] [--fps 9] [--feed PATH]
 Colour bars with a white bar sweeping left to right and a frame number, so frozen, torn or colour-swapped video is obvious."""
 import argparse, sys, time

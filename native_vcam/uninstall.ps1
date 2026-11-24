@@ -20,6 +20,7 @@ if (Test-Path $dll) {
     $p = Start-Process "$env:SystemRoot\System32\regsvr32.exe" -ArgumentList "/u /s `"$dll`"" -Wait -PassThru
     if ($p.ExitCode) { Write-Output "note: regsvr32 /u exit code $($p.ExitCode)" }
 }
+Remove-Item 'HKLM:\SOFTWARE\LeptonVCam' -Recurse -Force -ErrorAction SilentlyContinue   # board setting
 Set-Location $env:SystemRoot
 try { Remove-Item $target -Recurse -Force; 'UNINSTALL OK' }
 catch { Write-Output "Unregistered, but some files are in use: close camera apps and the Lepton program, then delete $target. ($($_.Exception.Message))"; exit 1 }

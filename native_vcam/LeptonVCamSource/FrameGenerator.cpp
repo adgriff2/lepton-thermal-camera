@@ -21,6 +21,7 @@ static const Glyph _glyphs[] =
 	{ 'R', { 0x1E, 0x11, 0x11, 0x1E, 0x14, 0x12, 0x11 } },
 	{ 'S', { 0x0F, 0x10, 0x10, 0x0E, 0x01, 0x01, 0x1E } },
 	{ 'T', { 0x1F, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04 } },
+	{ 'H', { 0x11, 0x11, 0x11, 0x1F, 0x11, 0x11, 0x11 } },
 	{ 'B', { 0x1E, 0x11, 0x11, 0x1E, 0x11, 0x11, 0x1E } },
 	{ 'C', { 0x0E, 0x11, 0x10, 0x10, 0x10, 0x11, 0x0E } },
 	{ 'D', { 0x1E, 0x11, 0x11, 0x11, 0x11, 0x11, 0x1E } },
@@ -99,6 +100,7 @@ void FrameGenerator::UpdateMessage()
 	switch (status)
 	{
 	case LeptonCapture::Status::NoDriver: reason = "FTDI DRIVER NOT FOUND"; break;
+	case LeptonCapture::Status::NotConfigured: reason = "NO BOARD CONFIGURED"; break;
 	case LeptonCapture::Status::NoBoard: reason = "BOARD NOT CONNECTED"; break;
 	case LeptonCapture::Status::Busy: reason = "BOARD IN USE"; break;
 	case LeptonCapture::Status::Several: reason = "SEVERAL BOARDS FOUND"; break;
@@ -118,7 +120,7 @@ void FrameGenerator::UpdateMessage()
 		_messageBgrx[i] = _messageBgrx[i + 1] = _messageBgrx[i + 2] = 32;
 		_messageBgrx[i + 3] = 255;
 	}
-	DrawCentered(_messageBgrx, "FLIR LEPTON", 150, 4, 110);
+	DrawCentered(_messageBgrx, "LEPTON THERMAL", 150, 4, 110);
 	DrawCentered(_messageBgrx, title.c_str(), 220, 8, 220);
 	if (!reason.empty())
 	{

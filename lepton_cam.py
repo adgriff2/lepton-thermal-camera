@@ -1,7 +1,7 @@
 """Live FLIR Lepton viewer (+ optional virtual webcam) for the FT2232H dev kit. Supports Lepton 3 (160x120) and Lepton 1/2 (80x60).
   python lepton_cam.py --model 3            preview window (q quit, p palette, f flip, m mirror)
   python lepton_cam.py --model 3 --vcam     also publish as a webcam (needs OBS Virtual Camera)
-  python lepton_cam.py --model 3 --nativecam   also publish as the Windows camera "FLIR Lepton" (see native_vcam/README.md)
+  python lepton_cam.py --model 3 --nativecam   also publish as the Windows camera "Lepton Thermal" (see native_vcam/README.md)
 Channel A = SPI video (CS on AD3). A reader thread only reads USB; a worker thread parses/CRC-checks, so no segments are missed."""
 import sys, os, time, argparse, threading, queue
 try:
@@ -30,6 +30,47 @@ def crc_ok_all(P):
     for j in range(PKT):
         c = ((c << 8) & 0xFFFF) ^ CRC_T[((c >> 8) ^ P[:, j]) & 0xFF]
     return bool((c == rx).all())
+
+class PacketAligner:
+    """The VoSPI stream often starts some bits off a packet boundary and stays like that until it is restarted
+    (the "silent", runs=0 case). The data is fine: find the boundary once, from packet numbers and CRCs, and read from there."""
+    def __init__(self): self.rest = b""; self.shift = 0; self.locked = False; self.last_search = 0.0
+    @staticmethod
+    def _shifted(data, shift):                           # bytes as seen <shift> bits later
+        a = np.frombuffer(data, dtype=np.uint8)
+        if not shift: return a
+        a = a.astype(np.uint16)
+        return (((a[:-1] << shift) | (a[1:] >> (8 - shift))) & 0xFF).astype(np.uint8)
+    @staticmethod
+    def _follows(P):                                     # packet i is a video packet numbered one more than packet i-1
+        ok = ((P[:, 0] & 0x0F) != 0x0F) & (P[:, 1] < NPKT)
+        return ok[1:] & ok[:-1] & (P[1:, 1] == P[:-1, 1] + 1)
+    def _search(self, data):
+        self.last_search = time.time(); best = (0, 0, 0)
+        for shift in range(8):
+            v = self._shifted(data, shift)
+            for off in range(PKT):
+                n = (len(v) - off) // PKT
+                c = int(self._follows(v[off:off + n * PKT].reshape(n, PKT)).sum())
+                if c > best[0]: best = (c, shift, off)
+        c, shift, off = best
+        if c < 20: return None
+        v = self._shifted(data, shift); n = (len(v) - off) // PKT; P = v[off:off + n * PKT].reshape(n, PKT)
+        cand = P[1:][self._follows(P)]
+        good = sum(crc_ok_all(cand[i:i + 1]) for i in range(len(cand)))
+        return (shift, off) if good >= 20 else None
+    def packets(self, chunk, search=False):
+        """Returns the complete packets (n x 164) available after adding this USB chunk."""
+        data = self.rest + chunk
+        if search or not self.locked:
+            found = self._search(data)
+            if found is None:
+                self.locked = False; self.rest = b""
+                return np.zeros((0, PKT), np.uint8)
+            self.shift, off = found; self.locked = True; data = data[off:]
+        v = self._shifted(data, self.shift); n = len(v) // PKT
+        self.rest = data[n * PKT:]
+        return v[:n * PKT].reshape(n, PKT)
 
 class Grabber:
     def __init__(self, model="auto", div=1, chunks=3, check_crc=True):
@@ -77,12 +118,13 @@ class Grabber:
             try: self.h.setBitMode(0, 0); self.h.write(bytes([0x80, 0x01, 0x00])); self.h.close()
             except Exception: pass
     def _worker(self):
-        rows = [None] * NPKT; expected = 0
+        rows = [None] * NPKT; expected = 0; align = PacketAligner()
         try:
             while not self.stop:
                 try: buf = self.q.get(timeout=0.2)
                 except queue.Empty: continue
-                arr = np.frombuffer(buf, dtype=np.uint8).reshape(-1, PKT)
+                now = time.time()                        # lost the boundary (e.g. after a resync): look for it again
+                arr = align.packets(buf, search=now - self.last_ok > 1 and now - align.last_search > 0.5)
                 idx = np.nonzero((arr[:, 0] & 0x0F) != 0x0F)[0]        # drop discard packets
                 nums = arr[idx, 1].tolist()
                 for i, n in zip(idx.tolist(), nums):

@@ -1,4 +1,4 @@
-// lepton_vcam.exe: adds / removes the "FLIR Lepton" camera for the current user. Does not need admin rights
+// lepton_vcam.exe: adds / removes the "Lepton Thermal" camera for the current user. Does not need admin rights
 // (the media source DLL must have been registered by install.ps1 first).
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
@@ -33,10 +33,18 @@ static std::wstring RegisteredDll()
 	return path;
 }
 
-static HRESULT Create(MFVirtualCameraLifetime lifetime, IMFVirtualCamera** camera)
+static HRESULT Create(MFVirtualCameraLifetime lifetime, IMFVirtualCamera** camera, const wchar_t* name = LEPTON_VCAM_NAME)
 {
 	return MFCreateVirtualCamera(MFVirtualCameraType_SoftwareCameraSource, lifetime, MFVirtualCameraAccess_CurrentUser,
-		LEPTON_VCAM_NAME, LEPTON_VCAM_CLSID_STRING, nullptr, 0, camera);
+		name, LEPTON_VCAM_CLSID_STRING, nullptr, 0, camera);
+}
+
+// cameras added by v1.0 are called "FLIR Lepton"
+static void RemoveOldName()
+{
+	ComPtr<IMFVirtualCamera> camera;
+	if (SUCCEEDED(Create(MFVirtualCameraLifetime_System, &camera, LEPTON_VCAM_OLD_NAME)) && SUCCEEDED(camera->Remove()))
+		wprintf(L"removed the old camera name \"%s\"\n", LEPTON_VCAM_OLD_NAME);
 }
 
 static HRESULT ListCameras(std::vector<std::wstring>& names)
@@ -72,6 +80,10 @@ static int Status()
 	if (FAILED(hr)) return Fail(L"MFEnumDeviceSources", hr);
 
 	auto found = false;
+	wchar_t board[128] = L"";
+	DWORD boardSize = sizeof(board);
+	RegGetValueW(HKEY_LOCAL_MACHINE, LEPTON_VCAM_REG_KEY, LEPTON_VCAM_REG_BOARD, RRF_RT_REG_SZ, nullptr, board, &boardSize);
+	wprintf(L"board=%s\n", *board ? board : L"(not configured: run install.ps1 -Board)");
 	for (auto& name : names)
 	{
 		wprintf(L"camera: %s\n", name.c_str());
@@ -79,6 +91,35 @@ static int Status()
 	}
 	wprintf(L"lepton_camera=%s\n", found ? L"listed" : L"not listed");
 	return found ? 0 : 2;
+}
+
+// FTDI devices as the camera DLL sees them (ftd2xx.dll), so the administrator can pick the -Board name
+static int Boards()
+{
+	auto module = LoadLibraryExW(L"ftd2xx.dll", nullptr, LOAD_LIBRARY_SEARCH_SYSTEM32);
+	if (!module)
+	{
+		wprintf(L"FTDI D2XX driver not installed (ftd2xx.dll missing): plug in the board and let Windows Update install it\n");
+		return 1;
+	}
+	auto createList = (ULONG(WINAPI*)(DWORD*))GetProcAddress(module, "FT_CreateDeviceInfoList");
+	auto getDetail = (ULONG(WINAPI*)(DWORD, DWORD*, DWORD*, DWORD*, DWORD*, char*, char*, void**))GetProcAddress(module, "FT_GetDeviceInfoDetail");
+	DWORD count = 0;
+	if (!createList || !getDetail || createList(&count)) { wprintf(L"FAILED to list FTDI devices\n"); return 1; }
+
+	static const wchar_t* types[] = { L"BM", L"AM", L"100AX", L"unknown", L"2232C", L"232R", L"2232H", L"4232H", L"232H", L"X-series" };
+	for (DWORD i = 0; i < count; i++)
+	{
+		DWORD flags = 0, type = 0, id = 0, location = 0;
+		char serial[64] = "", description[128] = "";
+		void* handle;
+		if (getDetail(i, &flags, &type, &id, &location, serial, description, &handle)) continue;
+		auto mpsse = type == 6 || type == 7 || type == 8;
+		wprintf(L"board %u: \"%S\"  chip=FT%s%s%s\n", i, description, type < _countof(types) ? types[type] : L"?",
+			(flags & 1) ? L"  (in use by a program: details hidden)" : L"", !(flags & 1) && !mpsse ? L"  (cannot be used: no MPSSE)" : L"");
+	}
+	if (!count) wprintf(L"no FTDI device connected\n");
+	return 0;
 }
 
 static int Install(bool session)
@@ -92,6 +133,7 @@ static int Install(bool session)
 		return 1;
 	}
 
+	RemoveOldName();
 	ComPtr<IMFVirtualCamera> camera;
 	hr = Create(session ? MFVirtualCameraLifetime_Session : MFVirtualCameraLifetime_System, &camera);
 	if (FAILED(hr)) return Fail(L"MFCreateVirtualCamera", hr);
@@ -113,6 +155,7 @@ static int Install(bool session)
 
 static int Remove()
 {
+	RemoveOldName();
 	ComPtr<IMFVirtualCamera> camera;
 	auto hr = Create(MFVirtualCameraLifetime_System, &camera);
 	if (FAILED(hr)) return Fail(L"MFCreateVirtualCamera", hr);
@@ -125,13 +168,16 @@ static int Remove()
 int wmain(int argc, wchar_t** argv)
 {
 	std::wstring command = argc > 1 ? argv[1] : L"";
+	if (command == L"boards")
+		return Boards();
 	if (command != L"install" && command != L"remove" && command != L"status" && command != L"session")
 	{
-		wprintf(L"usage: lepton_vcam install | remove | status | session\n"
+		wprintf(L"usage: lepton_vcam install | remove | status | session | boards\n"
 			L"  install  add the camera for this user (stays until removed)\n"
 			L"  remove   remove it\n"
 			L"  status   show the registered DLL and the cameras Windows lists\n"
-			L"  session  add the camera only while this program runs\n");
+			L"  session  add the camera only while this program runs\n"
+			L"  boards   list the FTDI boards, to choose install.ps1 -Board\n");
 		return 1;
 	}
 

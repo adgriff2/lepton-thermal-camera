@@ -16,13 +16,31 @@ static constexpr ULONGLONG RESYNC_MS = 3000;
 static constexpr UINT LW = 160, LH = 120;
 static constexpr UINT W = LEPTON_FEED_WIDTH, H = LEPTON_FEED_HEIGHT, SCALE = 4;
 static_assert(LW * SCALE == W && LH * SCALE == H);
-static const char BOARD_DESCRIPTION[] = "Dual RS232-HS A";
+
+// FTDI's factory default names (such as "Dual RS232-HS A") are shared by many devices, so the board is never guessed:
+// the administrator names it when installing (HKLM, see install.ps1).
+static std::string ConfiguredBoard()
+{
+	char value[128] = "";
+	auto length = GetEnvironmentVariableA("LEPTON_VCAM_BOARD", value, sizeof(value)); // tests in a normal process only
+	if (length > 0 && length < sizeof(value))
+		return value;
+
+	wchar_t wide[128] = L"";
+	DWORD size = sizeof(wide);
+	if (RegGetValueW(HKEY_LOCAL_MACHINE, LEPTON_VCAM_REG_KEY, LEPTON_VCAM_REG_BOARD, RRF_RT_REG_SZ, nullptr, wide, &size) != ERROR_SUCCESS)
+		return "";
+
+	char narrow[128] = "";
+	WideCharToMultiByte(CP_ACP, 0, wide, -1, narrow, sizeof(narrow), nullptr, nullptr);
+	return narrow;
+}
 
 // D2XX, loaded on demand: the camera must also work (with the feed) where the FTDI driver is not installed
 typedef PVOID FT_HANDLE;
 typedef ULONG FT_STATUS;
 static constexpr FT_STATUS FT_OK = 0, FT_DEVICE_NOT_FOUND = 2, FT_DEVICE_NOT_OPENED = 3;
-static constexpr DWORD FT_FLAGS_OPENED = 1, FT_DEVICE_2232H = 6;
+static constexpr DWORD FT_FLAGS_OPENED = 1, FT_DEVICE_2232H = 6, FT_DEVICE_4232H = 7, FT_DEVICE_232H = 8; // chips with MPSSE
 
 struct D2xx
 {
@@ -114,6 +132,10 @@ public:
 
 	Status Open(FT_STATUS& error)
 	{
+		auto wanted = ConfiguredBoard();
+		if (wanted.empty())
+			return Status::NotConfigured;
+
 		DWORD count = 0;
 		error = _ft.CreateDeviceInfoList(&count);
 		if (error != FT_OK)
@@ -130,7 +152,7 @@ public:
 				continue;
 
 			opened |= (flags & FT_FLAGS_OPENED) != 0; // details are hidden in that case
-			if (!(flags & FT_FLAGS_OPENED) && type == FT_DEVICE_2232H && !strcmp(description, BOARD_DESCRIPTION))
+			if (!(flags & FT_FLAGS_OPENED) && (type == FT_DEVICE_2232H || type == FT_DEVICE_4232H || type == FT_DEVICE_232H) && wanted == description)
 			{
 				found = (int)i;
 				matches++;

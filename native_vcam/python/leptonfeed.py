@@ -1,4 +1,4 @@
-"""Writes frames to the "FLIR Lepton" virtual camera feed (protocol: ../shared/LeptonFeed.h).
+"""Writes frames to the "Lepton Thermal" virtual camera feed (protocol: ../shared/LeptonFeed.h).
 Never blocks on the camera side and never raises after opening: on any error the feed just turns itself off."""
 import ctypes, mmap, msvcrt, os
 from ctypes import wintypes

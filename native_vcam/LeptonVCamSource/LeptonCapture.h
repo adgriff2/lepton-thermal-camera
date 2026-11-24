@@ -12,6 +12,7 @@ public:
 		Starting,
 		Streaming,
 		NoDriver,   // ftd2xx.dll is not installed
+		NotConfigured, // install.ps1 -Board was never given: touch no device
 		NoBoard,
 		Busy,       // another program uses the board
 		Several,    // more than one possible board: don't guess

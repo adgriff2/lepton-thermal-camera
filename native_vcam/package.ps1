@@ -27,7 +27,7 @@ if ($LASTEXITCODE) { throw 'numpy, opencv-python and ftd2xx must be installed' }
 Invoke-Checked $py (@('-m', 'pip', 'install', '-q', '--disable-pip-version-check', 'pyinstaller') + $versions.Split(' '))
 
 Invoke-Checked $py @('-m', 'PyInstaller', '--noconfirm', '--clean', '--onedir', '--console', '--name', 'lepton_cam',
-    '--paths', (Join-Path $root 'python'), '--hidden-import', 'leptonfeed', '--exclude-module', 'pyvirtualcam',
+    '--paths', (Join-Path $root 'python'), '--hidden-import', 'leptonfeed', '--exclude-module', 'pyvirtualcam', '--exclude-module', 'win32pdh', '--exclude-module', 'pywintypes',
     '--distpath', (Join-Path $work 'dist'), '--workpath', (Join-Path $work 'build'), '--specpath', $work,
     (Join-Path (Split-Path $root) 'lepton_cam.py'))
 
@@ -36,8 +36,30 @@ foreach ($d in $out, $view) {
     New-Item -ItemType Directory -Force $d | Out-Null
 }
 foreach ($f in 'LeptonVCamSource.dll', 'lepton_vcam.exe', 'vcam_selftest.exe') { Copy-Item (Join-Path $dist $f) $out }
-foreach ($f in 'install.ps1', 'uninstall.ps1', 'LICENSE') { Copy-Item (Join-Path $root $f) $out }
+foreach ($f in 'install.ps1', 'uninstall.ps1', 'NOTICES.txt') { Copy-Item (Join-Path $root $f) $out }
 Copy-Item (Join-Path $work 'dist\lepton_cam') (Join-Path $view 'lepton') -Recurse
+# license texts of everything bundled with the viewer
+$licenses = New-Item -ItemType Directory -Force (Join-Path $view 'licenses')
+$site = Join-Path $venv 'Lib\site-packages'
+$base = & $py -c "import sys; print(sys.base_prefix)"
+function Copy-License([string]$pattern, [string]$file, [string]$name) {
+    $found = Get-ChildItem $site -Directory -Filter $pattern | Select-Object -First 1
+    if (-not $found) { throw "$pattern not found in the build environment" }
+    Copy-Item (Join-Path $found.FullName $file) (Join-Path $licenses $name)
+}
+Copy-Item (Join-Path $base 'LICENSE.txt') (Join-Path $licenses 'Python-LICENSE.txt')   # also covers libffi, bzip2 and the others
+Copy-License 'opencv_python-*.dist-info' 'LICENSE.txt' 'opencv-python-LICENSE.txt'
+Copy-License 'opencv_python-*.dist-info' 'LICENSE-3RD-PARTY.txt' 'OpenCV-and-third-party-LICENSES.txt'
+Copy-License 'numpy-*.dist-info' 'licenses\LICENSE.txt' 'numpy-LICENSE.txt'
+Copy-License 'ftd2xx-*.dist-info' 'licenses\LICENSE' 'ftd2xx-LICENSE.txt'
+Copy-License 'pyinstaller-*.dist-info' 'licenses\COPYING.txt' 'PyInstaller-COPYING.txt'
+$apache = Get-ChildItem $site -Recurse -File -Filter 'LICENSE.APACHE' | Select-Object -First 1
+("OpenSSL 3 (libssl-3.dll, libcrypto-3.dll, from the Python distribution)`r`nhttps://www.openssl.org - Apache License 2.0:`r`n`r`n" +
+    (Get-Content $apache.FullName -Raw)) | Set-Content (Join-Path $licenses 'OpenSSL-LICENSE.txt') -Encoding UTF8
+((Get-Content (Join-Path $root 'NOTICES.txt') -Raw) -split '={10,}')[0].TrimEnd() + "`r`n`r`nThe Python runtime and libraries bundled in the lepton folder (Python, OpenCV, numpy, OpenSSL, ftd2xx,`r`nPyInstaller) come with their own licenses: see the licenses folder.`r`n" |
+    Set-Content (Join-Path $view 'NOTICES.txt') -Encoding UTF8
+foreach ($dll in 'pywintypes*.dll', 'win32pdh.pyd') { if (Get-ChildItem $view -Recurse -Filter $dll) { throw "$dll is still bundled" } }
+
 # OpenCV's video file reader/writer (FFmpeg, ~40 MB): lepton_cam.py never opens video files
 Get-ChildItem (Join-Path $view 'lepton') -Recurse -Filter 'opencv_videoio_ffmpeg*.dll' | Remove-Item -Force
 
@@ -52,17 +74,21 @@ pause
 '@ | Set-Content (Join-Path $out 'Add camera.cmd') -Encoding ASCII
 
 @'
-FLIR Lepton camera for Windows 11 (x64)
+Lepton Thermal camera for Windows 11 (x64), for a FLIR Lepton 3 on an FTDI FT2232H board
 
-1. Once per PC, in an ELEVATED PowerShell opened in this folder:
-     powershell -ExecutionPolicy Bypass -File .\install.ps1
-2. Once per user, without admin: double-click "Add camera.cmd".
-3. Plug in the FT2232H board. Windows Update normally installs its driver
+1. Plug in the board. Windows Update normally installs its driver
    (otherwise, as admin: https://ftdichip.com/drivers/d2xx-drivers/).
+2. Once per PC, in an ELEVATED PowerShell opened in this folder, see which name your board has:
+     .\lepton_vcam.exe boards
+   then install, giving that name (usually "Dual RS232-HS A"):
+     powershell -ExecutionPolicy Bypass -File .\install.ps1 -Board "Dual RS232-HS A"
+   The camera only ever uses the board named here. Make sure no other device with that name is connected.
+3. Once per user, without admin: double-click "Add camera.cmd".
 
-Then pick "FLIR Lepton" in the Windows Camera app or any other camera app. Nothing has to be started.
+Then pick "Lepton Thermal" in the Windows Camera app or any other camera app. Nothing has to be started.
 If there is no picture, the camera image says why (for example BOARD NOT CONNECTED).
 The files are not signed: SmartScreen may warn, and Smart App Control or company policy may block them.
+The camera DLL runs inside the Windows camera service. Not affiliated with Teledyne FLIR; see NOTICES.txt.
 
 Remove: normal PowerShell:   & "$env:ProgramData\LeptonVCam\lepton_vcam.exe" remove
         elevated PowerShell: powershell -ExecutionPolicy Bypass -File "$env:ProgramData\LeptonVCam\uninstall.ps1"
@@ -75,10 +101,11 @@ pause
 '@ | Set-Content (Join-Path $view 'Lepton viewer.cmd') -Encoding ASCII
 
 @'
-FLIR Lepton viewer for Windows (x64). No admin, no installation: double-click "Lepton viewer.cmd".
+Lepton viewer for Windows (x64), for a FLIR Lepton 3 on an FTDI FT2232H board.
+No admin, no installation: double-click "Lepton viewer.cmd".
 Keys in the window: q quit, p palette, f flip, m mirror. It is a window, not a camera: share the window in a call.
 Needs the FTDI driver (Windows Update normally installs it when the board is plugged in).
-If no picture appears within a few seconds, close it and start it again.
+Not affiliated with Teledyne FLIR; licenses in NOTICES.txt and the licenses folder.
 '@ | Set-Content (Join-Path $view 'README.txt') -Encoding ASCII
 
 foreach ($d in $out, $view) {

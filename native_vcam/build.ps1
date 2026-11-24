@@ -17,8 +17,8 @@ if ($LASTEXITCODE) { throw "build failed ($LASTEXITCODE)" }
 
 $dist = Join-Path $root 'dist'
 New-Item -ItemType Directory -Force $dist | Out-Null
-foreach ($f in 'LeptonVCamSource.dll', 'lepton_vcam.exe', 'vcam_selftest.exe', 'lepton_agent.exe') { Copy-Item (Join-Path $root "out\$Configuration\$f") $dist -Force }
-foreach ($f in 'install.ps1', 'uninstall.ps1', 'LICENSE') {
+foreach ($f in 'LeptonVCamSource.dll', 'lepton_vcam.exe', 'vcam_selftest.exe') { Copy-Item (Join-Path $root "out\$Configuration\$f") $dist -Force }
+foreach ($f in 'install.ps1', 'uninstall.ps1', 'NOTICES.txt') {
     $p = Join-Path $root $f
     if (Test-Path $p) { Copy-Item $p $dist -Force }
 }
